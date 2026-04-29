@@ -1,4 +1,74 @@
+# ============================================================
+# .gitignore — tradingview-mcp-jackson (drasticstatic working copy)
+# ============================================================
+
+# -----------------------------------------------
+# macOS system files
+# -----------------------------------------------
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+Icon?
+.fseventsd
+*alias
+*.icloud
+
+
+# -----------------------------------------------
+# Credentials, API keys, secrets
+# -----------------------------------------------
+.env
+.env.*
+!.env.example
+!.env.template
+*.key
+*.pem
+*.p12
+*.pfx
+credentials/
+secrets/
+keys/
+*service_account*
+*service-account*
+*google-credentials*
+*google_credentials*
+
+
+# -----------------------------------------------
+# Private config — rules.json contains personal
+# watchlist, strategy rules, and account info.
+# rules.example.json (public template) is tracked.
+# -----------------------------------------------
+rules.json
+
+
+# -----------------------------------------------
+# Node.js
+# -----------------------------------------------
 node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.node_repl_history
+
+
+# -----------------------------------------------
+# Editor / IDE
+# -----------------------------------------------
+.vscode/
+.idea/
+*.sublime-workspace
+*.swp
+*.swo
+*~
+
+
+# -----------------------------------------------
+# Original entries
+# -----------------------------------------------
 screenshots/
 scripts/current.pine
 temp_*
