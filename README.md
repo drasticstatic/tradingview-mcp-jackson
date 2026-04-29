@@ -1,3 +1,12 @@
+> **drasticstatic working copy** — Used by the [Fortuna trading system](https://github.com/drasticstatic/trading-assistant). This is an independent repo created from a local clone of [LewisWJackson/tradingview-mcp-jackson](https://github.com/LewisWJackson/tradingview-mcp-jackson). Upstream is tracked as a remote for voluntary comparison — changes are reviewed before applying.
+> 
+> ```bash
+> # Check for upstream updates (review before applying)
+> git fetch upstream && git log upstream/main --oneline
+> ```
+
+---
+
 # TradingView MCP Jackson
 
 If you found this from the YouTube video — welcome. This is the improved fork. Everything you need is below.
