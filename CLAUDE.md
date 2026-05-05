@@ -147,6 +147,7 @@ Before running `git clone`, `npm install`, `pip install`, or adding any external
 
 When skills, specs, or task files exist for a topic — follow the logic there, not here. This file holds identity, pointers, and short rules only.
 
+- **AGENTS.md** — root-level config for all AI agents (Claude Code, Cursor, Copilot)
 - **Skills:** `.claude/skills/` — full procedure lives in the skill file; CLAUDE.md holds triggers only
 - **Tasks:** `PENDING-TASKS.md` or `tasks.md` if present — active/completed task tracking
 - **Agent handoffs:** `AGENT-SYNC/` (hub: `~/code/trading-assistant/`) — see `AGENT_SYNC.md` for current state
