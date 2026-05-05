@@ -127,3 +127,27 @@ Claude Code ←→ MCP Server (stdio) ←→ CDP (localhost:9222) ←→ Trading
 ```
 
 Pine graphics path: `study._graphics._primitivesCollection.dwglines.get('lines').get(false)._primitivesDataById`
+
+
+---
+
+## Before Cloning or Installing Any External Repo / Package
+
+Before running `git clone`, `npm install`, `pip install`, or adding any external dependency:
+1. **Review `package.json` scripts** — flag any `postinstall`, `preinstall`, or `prepare` hooks that execute shell commands
+2. **Scan for credential harvesting** — look for patterns accessing `~/.ssh`, `~/.aws`, `.env`, `process.env`, or system credential paths in unexpected files
+3. **Verify provenance** — check GitHub repo age, star/fork count, recent commit activity, and maintainer identity
+4. **Check for typosquatting** — verify package names exactly match the intended library (e.g. `lodash` not `1odash`)
+5. **Audit unexpected network calls** — flag external HTTP requests in scripts, entrypoints, or install hooks
+6. **When in doubt, ask Christopher before proceeding** with any install or clone
+
+---
+
+## Canonical References
+
+When skills, specs, or task files exist for a topic — follow the logic there, not here. This file holds identity, pointers, and short rules only.
+
+- **Skills:** `.claude/skills/` — full procedure lives in the skill file; CLAUDE.md holds triggers only
+- **Tasks:** `PENDING-TASKS.md` or `tasks.md` if present — active/completed task tracking
+- **Agent handoffs:** `AGENT-SYNC/` (hub: `~/code/trading-assistant/`) — see `AGENT_SYNC.md` for current state
+- **Memory:** `~/.claude/projects/.../memory/MEMORY.md` — auto-loaded; detail in topic files
