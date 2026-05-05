@@ -75,6 +75,12 @@ git fetch upstream && git log HEAD..upstream/main --oneline
 
 ---
 
+## Override System
+
+Create `AGENTS.override.md` for temporary task-specific rules (e.g., "read-only mode during market hours — no chart changes"). Delete when done. Template: `~/code/my-template/AGENTS.override.md`
+
+---
+
 ## Canonical References
 
 - `CLAUDE.md` — Tool decision tree, context management rules, architecture notes
