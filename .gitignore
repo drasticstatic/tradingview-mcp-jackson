@@ -74,3 +74,8 @@ scripts/current.pine
 temp_*
 *.log
 discovery-log.json
+
+# Graphify — local-only outputs (graph.json, GRAPH_REPORT.md, graph.html are committed)
+graphify-out/manifest.json
+graphify-out/cost.json
+graphify-out/cache/
