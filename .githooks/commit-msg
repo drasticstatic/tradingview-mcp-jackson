@@ -1,0 +1,87 @@
+#!/bin/sh
+# commit-msg — enforce the fleet commit-attribution convention.
+#
+# Canonical form (see AGENT-SYNC/README.md):
+#     Co-Authored-By: <Agent> · <Engine> · <Provider> [<Model>]
+#     <Platform>-Session: <full session URL>        (when the platform assigns one)
+#
+# Installed via core.hooksPath, so it is version-controlled and travels with the
+# repo. Activate once per clone:  sh scripts/install-hooks.sh
+#
+# Escape hatch: git commit --no-verify   (for human-only commits)
+
+MSG_FILE="$1"
+[ -f "$MSG_FILE" ] || exit 0
+
+# Strip comment lines so commented-out examples never satisfy the check.
+BODY=$(grep -v '^#' "$MSG_FILE")
+
+# Exempt machine-generated commits the author does not hand-write.
+case "$BODY" in
+  "Merge "*|"Revert "*|"fixup! "*|"squash! "*|"Merge branch"*|"Merge pull request"*)
+    exit 0 ;;
+esac
+
+# An empty message is git's own abort path — let git handle it.
+printf '%s' "$BODY" | grep -q '[^[:space:]]' || exit 0
+
+CANON='^Co-Authored-By: .+ · .+ · .+ \[.+\]$'
+ANY_COAUTHOR='^Co-Authored-By:'
+SESSION='^[A-Za-z][A-Za-z0-9]*-Session: '
+
+fail() {
+  cat >&2 <<EOF
+
+  ✗ commit rejected — attribution footer does not match the fleet convention.
+
+  $1
+
+  Expected, as the last trailer line(s) of the message:
+
+      Co-Authored-By: <Agent> · <Engine> · <Provider> [<Model>]
+      <Platform>-Session: <full session URL>
+
+  Real examples:
+
+      Co-Authored-By: Fortuna · ClaudeCodeCLI · Anthropic [Sonnet-5]
+      Claude-Session: https://claude.ai/code/session_01XHntH8UvqXQPq2zNkQMe6q
+
+      Co-Authored-By: Cosmos-PRAuthor · Cosmos · Anthropic [Claude Opus 5]
+      Cosmos-Session: https://cosmos.augmentcode.com/session?agentId=01M27...
+
+  Notes:
+    · The separator is U+00B7 MIDDLE DOT ( · ), not a hyphen or a period.
+    · The model goes in [square brackets]; the provider does not.
+    · Two separate trailers. Never fold the session onto the Co-Authored-By line —
+      it stops parsing as a git trailer.
+    · Full session URL, never a truncated prefix.
+
+  Convention: my-template/AGENT-SYNC/README.md
+  Human-only commit? Re-run with:  git commit --no-verify
+
+EOF
+  exit 1
+}
+
+if ! printf '%s\n' "$BODY" | grep -qE "$ANY_COAUTHOR"; then
+  fail "No Co-Authored-By: trailer found."
+fi
+
+if ! printf '%s\n' "$BODY" | grep -qE "$CANON"; then
+  BAD=$(printf '%s\n' "$BODY" | grep -E "$ANY_COAUTHOR" | head -1)
+  fail "Found a Co-Authored-By: trailer, but not in canonical form:
+      $BAD"
+fi
+
+# Session trailer is advisory: not every engine assigns a session ID.
+if ! printf '%s\n' "$BODY" | grep -qE "$SESSION"; then
+  cat >&2 <<'EOF'
+
+  ⚠ No <Platform>-Session: trailer. Allowed — but if your engine assigns a
+    session or conversation ID, add it so this commit stays traceable to the
+    run that produced it.
+
+EOF
+fi
+
+exit 0
