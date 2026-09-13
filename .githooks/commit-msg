@@ -5,6 +5,12 @@
 #     Co-Authored-By: <Agent> · <Engine> · <Provider> [<Model>]
 #     <Platform>-Session: <full session URL>        (when the platform assigns one)
 #
+# Field semantics — these matter when inference is proxied (free-claude-code):
+#     <Engine>   the harness you typed into        (ClaudeCodeCLI, Cosmos, AugmentIntent)
+#     <Provider> who actually ran the weights      (Anthropic, NVIDIA NIM, OpenRouter, ...)
+#     <Model>    which weights answered            (Sonnet-5, GLM-4.7, Kimi-K2.5)
+# Routing Claude Code through a proxy changes the Provider and Model, never the Engine.
+#
 # Installed via core.hooksPath, so it is version-controlled and travels with the
 # repo. Activate once per clone:  sh scripts/install-hooks.sh
 #
@@ -49,12 +55,21 @@ fail() {
       Co-Authored-By: Cosmos-PRAuthor · Cosmos · Anthropic [Claude Opus 5]
       Cosmos-Session: https://cosmos.augmentcode.com/session?agentId=01M27...
 
+  Proxied inference (free-claude-code) — Engine stays, Provider and Model change:
+
+      Co-Authored-By: Alfred · ClaudeCodeCLI · NVIDIA NIM [GLM-4.7]
+      Co-Authored-By: Alfred · ClaudeCodeCLI · NVIDIA NIM [Kimi-K2.5]
+      Co-Authored-By: Fortuna · ClaudeCodeCLI · OpenRouter [DeepSeek-V3]
+      Co-Authored-By: Alfred · ClaudeCodeCLI · Ollama [Llama-3.3-70B]
+
   Notes:
     · The separator is U+00B7 MIDDLE DOT ( · ), not a hyphen or a period.
     · The model goes in [square brackets]; the provider does not.
     · Two separate trailers. Never fold the session onto the Co-Authored-By line —
       it stops parsing as a git trailer.
     · Full session URL, never a truncated prefix.
+    · Running through a proxy? The Provider is the inference host, not Anthropic.
+      The Engine is still ClaudeCodeCLI — you were in Claude Code either way.
 
   Convention: my-template/AGENT-SYNC/README.md
   Human-only commit? Re-run with:  git commit --no-verify
@@ -71,6 +86,26 @@ if ! printf '%s\n' "$BODY" | grep -qE "$CANON"; then
   BAD=$(printf '%s\n' "$BODY" | grep -E "$ANY_COAUTHOR" | head -1)
   fail "Found a Co-Authored-By: trailer, but not in canonical form:
       $BAD"
+fi
+
+# Advisory: catch a provider left at Anthropic after switching to a proxied model.
+# The footer is only worth enforcing if it is true, and this is the way it goes
+# stale — the engine is unchanged, so the line still looks right.
+COAUTHOR=$(printf '%s\n' "$BODY" | grep -E "$CANON" | head -1)
+PROVIDER=$(printf '%s' "$COAUTHOR" | sed -e 's/ \[[^]]*\]$//' -e 's/.* · //')
+MODEL=$(printf '%s' "$COAUTHOR" | sed -e 's/.*\[//' -e 's/\]$//')
+FOREIGN='glm|kimi|minimax|deepseek|qwen|llama|mistral|gemma|command-r|nemotron'
+
+if [ "$PROVIDER" = "Anthropic" ] && printf '%s' "$MODEL" | grep -qiE "$FOREIGN"; then
+  cat >&2 <<EOF
+
+  ⚠ Provider says Anthropic, but [$MODEL] is not an Anthropic model.
+
+    If you are routing Claude Code through free-claude-code, the Provider is the
+    inference host — NVIDIA NIM, OpenRouter, DeepSeek, LM Studio, llama.cpp, or
+    Ollama — not Anthropic. Commit allowed, but the trailer is probably wrong.
+
+EOF
 fi
 
 # Session trailer is advisory: not every engine assigns a session ID.
