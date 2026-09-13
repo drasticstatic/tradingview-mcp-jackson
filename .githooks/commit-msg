@@ -18,7 +18,7 @@
 #
 #     <Engine>   the harness you typed into     ClaudeCodeCLI, Cosmos, AugmentIntent
 #     <Gateway>  what routed the request        NVIDIA NIM, OpenRouter   (omit if direct)
-#     <Provider> whose weights ran              Anthropic, Z.ai, Moonshot AI, MiniMax
+#     <Provider> whose weights ran              Anthropic, Z.ai, Moonshot AI, MiniMaxAI
 #     <Model>    which weights                  Sonnet-5, GLM-4.7, Kimi-K2.5
 #
 # The Gateway is not the Provider. NVIDIA NIM routes; Z.ai makes GLM-4.7. Routing
@@ -122,7 +122,7 @@ provider_for() {
   case "$1" in
     *[Gg][Ll][Mm]*)        echo "Z.ai" ;;
     *[Kk]imi*)             echo "Moonshot AI" ;;
-    *[Mm]ini[Mm]ax*)       echo "MiniMax" ;;
+    *[Mm]ini[Mm]ax*)       echo "MiniMaxAI" ;;
     *[Dd]eep[Ss]eek*)      echo "DeepSeek" ;;
     *[Qq]wen*)             echo "Alibaba" ;;
     *)                     echo "" ;;
@@ -171,6 +171,18 @@ if [ "$FORM" = gated ] && [ "$PROVIDER" = "Anthropic" ]; then
     successfully served through this proxy — only GLM, Kimi and MiniMax have.
     An Anthropic-model session is almost certainly direct, so drop the Gateway
     field. Commit allowed in case that has changed."
+fi
+
+# 5. Fleet policy: the proxy is Alfred's. Fortuna and Mystarch stay on Anthropic.
+# Warned, never rejected — the footer records what happened, and a hook that
+# blocks an honest record only encourages a dishonest one.
+AGENT=$(printf '%s' "$FIELDS" | awk -F' · ' '{print $1}')
+if [ "$FORM" = gated ] && printf '%s' "$AGENT" | grep -qiE '^(fortuna|mystarch)'; then
+  warn "$AGENT is recorded as running through gateway \"$GATEWAY\".
+    Fleet policy keeps the proxy to Alfred: Fortuna and Mystarch run on Anthropic.
+    Fortuna touches live trading, where quality is not tradeable.
+    If this is accurate, leave it — an honest footer beats a tidy one — but the
+    session itself was probably launched the wrong way."
 fi
 
 # Session trailer is advisory: not every engine assigns a session ID.

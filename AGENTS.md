@@ -128,7 +128,7 @@ Co-Authored-By: <Agent> · <Engine> · <Gateway> · <Provider> [<Model>]      # 
 
 Model in **square brackets**, separator is U+00B7 MIDDLE DOT ( · ). Add `<Gateway>` **only when
 inference is proxied** — it names what *routed* the request (`NVIDIA NIM`, `OpenRouter`), never who
-made the model (`Z.ai`, `Moonshot AI`, `MiniMax`). The field order mirrors the `/model` selector
+made the model (`Z.ai`, `Moonshot AI`, `MiniMaxAI`). The field order mirrors the `/model` selector
 string, so `anthropic/nvidia_nim/z-ai/glm4.7` transcribes to `NVIDIA NIM · Z.ai [GLM-4.7]` —
 read it left to right rather than memorising it. Local runtimes (`Ollama`, `llama.cpp`,
 `LM Studio`) have no gateway: the weights ran on your machine, so the runtime is the Provider. The session
