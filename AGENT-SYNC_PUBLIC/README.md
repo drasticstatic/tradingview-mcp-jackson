@@ -34,7 +34,7 @@ paths differed by one trailing letter — unreadable at a glance and easy to mis
 better fix is a provenance header inside each handoff:
 
 ```markdown
-**From:** Cosmos Advisor · environment `drasticstatic`
+**From:** Cosmos Advisor · environment `<environment-name>`
 **Session:** https://cosmos.augmentcode.com/session?agentId=<id>
 ```
 

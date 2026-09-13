@@ -24,15 +24,24 @@ session:
 ```markdown
 # <Title>
 
-**From:** Cosmos Advisor · environment `drasticstatic`
+**From:** Cosmos Advisor · environment `<environment-name>`
 **Session:** https://cosmos.augmentcode.com/session?agentId=<id>
 **Date:** YYYY-MM-DD
 **For:** <who picks this up — Mystarch, Alfred, Christopher, or whoever next opens this repo>
 ```
 
-Environment matters enough to state, because it determines what the author could actually see.
-`drasticstatic` reaches all 32 repositories; `drasticstatica` was the narrower setup chat. A claim
-like "verified across the fleet" is only credible from an environment that can see the fleet.
+Environment matters enough to state, because it bounds what the author could actually see. A claim
+like "verified across the fleet" is only credible from an environment with fleet-wide reach.
+
+**Resolve it, do not assume it.** Run `auggie cloud environment list` and match the session's
+`environment_id` against the returned IDs. The first Cosmos agent to write this convention skipped
+that step: it had consolidated the repositories *into* `drasticstatic` and set it as the team
+default, inferred it must therefore be running there, and signed ~80 files with the wrong
+environment. It was actually in `drasticstatica (cosmos init chat)`.
+
+The irony is the lesson. This header exists precisely so provenance is stated rather than inferred
+from context — and it got filled in by inference anyway. A field that records where you are is
+worthless if you guess at it, so spend the one command.
 
 ## Naming
 
