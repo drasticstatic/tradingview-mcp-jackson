@@ -1,15 +1,29 @@
 #!/bin/sh
 # commit-msg — enforce the fleet commit-attribution convention.
 #
-# Canonical form (see AGENT-SYNC/README.md):
-#     Co-Authored-By: <Agent> · <Engine> · <Provider> [<Model>]
-#     <Platform>-Session: <full session URL>        (when the platform assigns one)
+# Canonical form (see AGENT-SYNC/README.md — that file is the spec, this is the
+# enforcement of it):
 #
-# Field semantics — these matter when inference is proxied (free-claude-code):
-#     <Engine>   the harness you typed into        (ClaudeCodeCLI, Cosmos, AugmentIntent)
-#     <Provider> who actually ran the weights      (Anthropic, NVIDIA NIM, OpenRouter, ...)
-#     <Model>    which weights answered            (Sonnet-5, GLM-4.7, Kimi-K2.5)
-# Routing Claude Code through a proxy changes the Provider and Model, never the Engine.
+#     Co-Authored-By: <Agent> · <Engine> · <Provider> [<Model>]
+#     Co-Authored-By: <Agent> · <Engine> · <Gateway> · <Provider> [<Model>]
+#     <Platform>-Session: <full session URL>       (when the platform assigns one)
+#
+# Four layers, and the field order deliberately mirrors the free-claude-code
+# model selector string, so the footer is a transcription and not a memory test:
+#
+#     anthropic / nvidia_nim / z-ai   / glm4.7
+#       └ dialect  └ Gateway   └ Provider └ Model
+#
+#     Co-Authored-By: Alfred-NIM · ClaudeCodeCLI · NVIDIA NIM · Z.ai [GLM-4.7]
+#
+#     <Engine>   the harness you typed into     ClaudeCodeCLI, Cosmos, AugmentIntent
+#     <Gateway>  what routed the request        NVIDIA NIM, OpenRouter   (omit if direct)
+#     <Provider> whose weights ran              Anthropic, Z.ai, Moonshot AI, MiniMax
+#     <Model>    which weights                  Sonnet-5, GLM-4.7, Kimi-K2.5
+#
+# The Gateway is not the Provider. NVIDIA NIM routes; Z.ai makes GLM-4.7. Routing
+# Claude Code through a proxy adds a Gateway and changes the Provider and Model —
+# it never changes the Engine, because the harness is still the thing you typed into.
 #
 # Installed via core.hooksPath, so it is version-controlled and travels with the
 # repo. Activate once per clone:  sh scripts/install-hooks.sh
@@ -31,7 +45,8 @@ esac
 # An empty message is git's own abort path — let git handle it.
 printf '%s' "$BODY" | grep -q '[^[:space:]]' || exit 0
 
-CANON='^Co-Authored-By: .+ · .+ · .+ \[.+\]$'
+DIRECT='^Co-Authored-By: [^·]+ · [^·]+ · [^·]+ \[.+\]$'
+GATED='^Co-Authored-By: [^·]+ · [^·]+ · [^·]+ · [^·]+ \[.+\]$'
 ANY_COAUTHOR='^Co-Authored-By:'
 SESSION='^[A-Za-z][A-Za-z0-9]*-Session: '
 
@@ -40,39 +55,33 @@ fail() {
 
   ✗ commit rejected — attribution footer does not match the fleet convention.
 
-  $1
+    $1
 
-  Expected, as the last trailer line(s) of the message:
+    Expected one of:
 
       Co-Authored-By: <Agent> · <Engine> · <Provider> [<Model>]
+      Co-Authored-By: <Agent> · <Engine> · <Gateway> · <Provider> [<Model>]
       <Platform>-Session: <full session URL>
 
-  Real examples:
+    Add the Gateway field only when inference is proxied. Its position mirrors
+    the model selector string — anthropic/nvidia_nim/z-ai/glm4.7 becomes
+    "NVIDIA NIM · Z.ai [GLM-4.7]" — so read the selector left to right.
 
-      Co-Authored-By: Fortuna · ClaudeCodeCLI · Anthropic [Sonnet-5]
-      Claude-Session: https://claude.ai/code/session_01XHntH8UvqXQPq2zNkQMe6q
+    Examples:
 
-      Co-Authored-By: Cosmos-PRAuthor · Cosmos · Anthropic [Claude Opus 5]
-      Cosmos-Session: https://cosmos.augmentcode.com/session?agentId=01M27...
+      Co-Authored-By: Alfred · ClaudeCodeCLI · Anthropic [Sonnet-5]
+      Co-Authored-By: Alfred-NIM · ClaudeCodeCLI · NVIDIA NIM · Z.ai [GLM-4.7]
+      Claude-Session: https://claude.ai/chat/<id>
 
-  Proxied inference (free-claude-code) — Engine stays, Provider and Model change:
+      Co-Authored-By: Cosmos-Advisor · Cosmos · Anthropic [Claude Opus 5]
+      Cosmos-Session: https://cosmos.augmentcode.com/session?agentId=<id>
 
-      Co-Authored-By: Alfred · ClaudeCodeCLI · NVIDIA NIM [GLM-4.7]
-      Co-Authored-By: Alfred · ClaudeCodeCLI · NVIDIA NIM [Kimi-K2.5]
-      Co-Authored-By: Fortuna · ClaudeCodeCLI · OpenRouter [DeepSeek-V3]
-      Co-Authored-By: Alfred · ClaudeCodeCLI · Ollama [Llama-3.3-70B]
+    Separator is U+00B7 MIDDLE DOT ( · ), not a hyphen or a period. The model
+    goes in square brackets. The session trailer is its own line — folding it
+    onto the Co-Authored-By: line breaks git's trailer parsing.
 
-  Notes:
-    · The separator is U+00B7 MIDDLE DOT ( · ), not a hyphen or a period.
-    · The model goes in [square brackets]; the provider does not.
-    · Two separate trailers. Never fold the session onto the Co-Authored-By line —
-      it stops parsing as a git trailer.
-    · Full session URL, never a truncated prefix.
-    · Running through a proxy? The Provider is the inference host, not Anthropic.
-      The Engine is still ClaudeCodeCLI — you were in Claude Code either way.
-
-  Convention: my-template/AGENT-SYNC/README.md
-  Human-only commit? Re-run with:  git commit --no-verify
+    Spec and rationale: AGENT-SYNC/README.md
+    Human-only commit? git commit --no-verify
 
 EOF
   exit 1
@@ -82,30 +91,86 @@ if ! printf '%s\n' "$BODY" | grep -qE "$ANY_COAUTHOR"; then
   fail "No Co-Authored-By: trailer found."
 fi
 
-if ! printf '%s\n' "$BODY" | grep -qE "$CANON"; then
+if printf '%s\n' "$BODY" | grep -qE "$GATED"; then
+  FORM=gated
+elif printf '%s\n' "$BODY" | grep -qE "$DIRECT"; then
+  FORM=direct
+else
   BAD=$(printf '%s\n' "$BODY" | grep -E "$ANY_COAUTHOR" | head -1)
   fail "Found a Co-Authored-By: trailer, but not in canonical form:
       $BAD"
 fi
 
-# Advisory: catch a provider left at Anthropic after switching to a proxied model.
-# The footer is only worth enforcing if it is true, and this is the way it goes
-# stale — the engine is unchanged, so the line still looks right.
-COAUTHOR=$(printf '%s\n' "$BODY" | grep -E "$CANON" | head -1)
-PROVIDER=$(printf '%s' "$COAUTHOR" | sed -e 's/ \[[^]]*\]$//' -e 's/.* · //')
-MODEL=$(printf '%s' "$COAUTHOR" | sed -e 's/.*\[//' -e 's/\]$//')
-FOREIGN='glm|kimi|minimax|deepseek|qwen|llama|mistral|gemma|command-r|nemotron'
+LINE=$(printf '%s\n' "$BODY" | grep -E "$ANY_COAUTHOR" | head -1)
+MODEL=$(printf '%s' "$LINE" | sed -n 's/.*\[\(.*\)\]$/\1/p')
+FIELDS=$(printf '%s' "$LINE" | sed 's/^Co-Authored-By: //; s/ *\[.*\]$//')
 
-if [ "$PROVIDER" = "Anthropic" ] && printf '%s' "$MODEL" | grep -qiE "$FOREIGN"; then
-  cat >&2 <<EOF
+if [ "$FORM" = gated ]; then
+  GATEWAY=$(printf '%s' "$FIELDS" | awk -F' · ' '{print $3}')
+  PROVIDER=$(printf '%s' "$FIELDS" | awk -F' · ' '{print $4}')
+else
+  GATEWAY=""
+  PROVIDER=$(printf '%s' "$FIELDS" | awk -F' · ' '{print $3}')
+fi
 
-  ⚠ Provider says Anthropic, but [$MODEL] is not an Anthropic model.
+warn() { printf '\n  ⚠ %s\n\n' "$1" >&2; }
 
-    If you are routing Claude Code through free-claude-code, the Provider is the
-    inference host — NVIDIA NIM, OpenRouter, DeepSeek, LM Studio, llama.cpp, or
-    Ollama — not Anthropic. Commit allowed, but the trailer is probably wrong.
+# Models that only ever reach this fleet through a gateway.
+PROXIED='glm|kimi|minimax|deepseek|qwen|llama|mistral|mixtral|gemma|phi-'
+# Known provider for each, so the warning can name the right answer.
+provider_for() {
+  case "$1" in
+    *[Gg][Ll][Mm]*)        echo "Z.ai" ;;
+    *[Kk]imi*)             echo "Moonshot AI" ;;
+    *[Mm]ini[Mm]ax*)       echo "MiniMax" ;;
+    *[Dd]eep[Ss]eek*)      echo "DeepSeek" ;;
+    *[Qq]wen*)             echo "Alibaba" ;;
+    *)                     echo "" ;;
+  esac
+}
+EXPECTED=$(provider_for "$MODEL")
 
-EOF
+# 1. The mistake this hook exists to catch: naming the gateway as the provider.
+# Matched whole-field, not by substring — "MiniMax" contains "nim".
+# Gateways route to someone else's hardware. Local runtimes (Ollama, llama.cpp,
+# LM Studio) are where the weights actually ran, so they are Providers, not gateways.
+IS_GATEWAY='^(nvidia nim|nvidia|nim|openrouter|free-claude-code)$'
+if [ -n "$EXPECTED" ] && printf '%s' "$PROVIDER" | grep -qiE "$IS_GATEWAY"; then
+  warn "Provider says \"$PROVIDER\", but that is a gateway, not a provider.
+    [$MODEL] comes from $EXPECTED. The gateway belongs in its own field:
+
+      ... · ClaudeCodeCLI · $PROVIDER · $EXPECTED [$MODEL]
+
+    Commit allowed, but the trailer credits the wrong party."
+fi
+
+# 2. Proxied model with no Gateway declared at all.
+# Local runtimes are exempt: nothing routed the request, so there is no gateway.
+IS_LOCAL='^(ollama|llama\.cpp|lm studio|vllm|localai|local)$'
+if [ "$FORM" = direct ] && printf '%s' "$MODEL" | grep -qiE "$PROXIED" \
+   && ! printf '%s' "$PROVIDER" | grep -qiE "$IS_LOCAL"; then
+  warn "[$MODEL] does not run on Anthropic infrastructure, but no Gateway field
+    is present. If you are on free-claude-code, this should read:
+
+      ... · ClaudeCodeCLI · NVIDIA NIM · ${EXPECTED:-<Provider>} [$MODEL]
+
+    Commit allowed, but the routing is unrecorded."
+fi
+
+# 3. Provider still says Anthropic while the model plainly is not.
+if [ "$PROVIDER" = "Anthropic" ] && printf '%s' "$MODEL" | grep -qiE "$PROXIED"; then
+  warn "Provider says Anthropic, but [$MODEL] is not an Anthropic model.
+    This is the failure that hides — the Engine legitimately did not change when
+    you switched models, so the line still looks right.
+    Commit allowed, but the trailer is probably wrong."
+fi
+
+# 4. Anthropic weights behind the NIM gateway — never once worked on this fleet.
+if [ "$FORM" = gated ] && [ "$PROVIDER" = "Anthropic" ]; then
+  warn "Gateway \"$GATEWAY\" with Provider Anthropic. No Anthropic model has ever
+    successfully served through this proxy — only GLM, Kimi and MiniMax have.
+    An Anthropic-model session is almost certainly direct, so drop the Gateway
+    field. Commit allowed in case that has changed."
 fi
 
 # Session trailer is advisory: not every engine assigns a session ID.
