@@ -80,7 +80,8 @@ fail() {
     goes in square brackets. The session trailer is its own line — folding it
     onto the Co-Authored-By: line breaks git's trailer parsing.
 
-    Spec and rationale: AGENT-SYNC/README.md
+    Spec and rationale (public, readable without access to this repo):
+    https://github.com/drasticstatic/my-template/blob/main/AGENT-SYNC/README.md
     Human-only commit? git commit --no-verify
 
 EOF
