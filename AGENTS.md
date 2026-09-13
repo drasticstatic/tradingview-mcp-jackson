@@ -5,6 +5,35 @@
 
 ---
 
+## ⚠ FIRST: sync this clone before you touch anything
+
+```sh
+git pull --rebase --autostash
+```
+
+Run this at the **start of every session**, before reading deeply or editing. Several agents and
+Christopher push to these repos — including Cosmos agents that run unattended while nobody is at the
+machine — so a clone can be behind by the time you open it.
+
+**`--autostash` is what makes this safe on a dirty tree.** It stashes uncommitted changes, rebases
+onto the remote, then reapplies them. Your in-progress work survives. Without it, `git pull --rebase`
+refuses to run and you are tempted into something worse.
+
+Why it matters more than it sounds:
+
+- A stale clone **does not fail early.** It fails at push time, after the work is done, as a
+  non-fast-forward rejection — the most expensive moment to discover it.
+- The tempting fix at that point is `git push --force`, which discards whatever someone else pushed
+  in the meantime. Syncing first removes the temptation.
+- If a rebase does conflict, stop and resolve it deliberately. A conflict is information: someone
+  else changed the same lines, and you want to know that *before* building on top of them.
+
+**Fresh clone?** Also run `sh scripts/install-hooks.sh` — git hooks are not version-controlled, so
+the commit-attribution hook stays inert until this clone is pointed at `.githooks/`. Details:
+[`scripts/README.md`](./scripts/README.md).
+
+---
+
 ## Project Overview
 
 **tradingview-mcp-jackson** is an MCP (Model Context Protocol) server that controls a live TradingView Desktop app via Chrome DevTools Protocol (CDP). Provides 68+ tools for reading chart state, managing indicators, drawing levels, executing replay trades, and more.
